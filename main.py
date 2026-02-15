@@ -1,0 +1,74 @@
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes
+
+import asyncio
+from pyrogram import Client
+from pyrogram.errors import ChatIdInvalid, PeerIdInvalid, ChannelInvalid, BadRequest
+
+api_id = 0
+api_hash = "SMT"
+mig_zvaz = "SMT"
+
+# to show a button
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    keyboard = [
+        [InlineKeyboardButton("Summarize", callback_data="summarize")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text('Want to summarize smt?:', reply_markup=reply_markup)
+
+# when clicked - summarize
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "summarize":
+        await summarize(update, context)
+
+async def summarize(update: Update, context: ContextTypes.DEFAULT_TYPE):  
+    await update.message.reply_text('Hello! Enter the user, chat link and then whitespace and a number of messages to summarize')
+
+    async with Client("my_account", api_id, api_hash) as app:
+        reply_text = await update.message.text.split(" ")
+        if len(reply_text) == 2:
+            try:
+                # split
+                target = reply_text[0]
+                await app.get_chat(target) # try to find chat, if can't - exception
+                limit = int(reply_text[1])
+
+                messages = {}
+                async for msg in app.get_chat_history(target, limit=limit):
+                    # get each sender and it's message
+                    sender = msg.from_user.username if msg.from_user else "?"
+                    text = (msg.text or msg.caption or "").strip()
+
+                    # add to list of messages from each user
+                    if sender not in messages:
+                        messages.update((sender, [text]))
+                    else:
+                        messages[sender].append(text)
+                
+                messages_str = {}
+                for sender_it, text_it in messages: # convert each list to str
+                    messages_str.update((sender_it, '. '.join(text_it)))
+                    # summarization = # call summarizer for each like ("Sender: his/her text")
+
+                # await update.message.reply_text(f'Summarization: {summarization}')
+
+            except ValueError:
+                await update.message.reply_text('Pass integer as the second argument')
+
+            except (ChatIdInvalid, PeerIdInvalid, ChannelInvalid, BadRequest) as e:
+                await update.message.reply_text(f"Coulldn't access the group/user, context: {e}")
+
+if __name__ == '__main__':
+    bot_app = ApplicationBuilder().token("YOUR_API_TOKEN").build()
+
+    # Commands
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CallbackQueryHandler(button_handler))
+    bot_app.add_handler(CommandHandler("summarize", summarize)) # can also call like /summarize
+
+    # Start the bot
+    bot_app.run_polling()
