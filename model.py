@@ -31,8 +31,8 @@ tokenized_dataset = dataset.map(preprocess, batched=True)
 training_args = TrainingArguments(
     output_dir=MODEL_PATH,
     num_train_epochs=6,
-    per_device_train_batch_size=16,     # adjust based on GPU memory
-    per_device_eval_batch_size=16,
+    per_device_train_batch_size=6,
+    per_device_eval_batch_size=6,
     warmup_steps=500,
     weight_decay=0.1,
     logging_dir="./logs",
