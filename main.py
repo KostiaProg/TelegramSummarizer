@@ -37,22 +37,17 @@ async def summarize(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await app.get_chat(target) # try to find chat, if can't - exception
                 limit = int(reply_text[1])
 
-                messages = {}
+                messages = []
                 async for msg in app.get_chat_history(target, limit=limit):
                     # get each sender and it's message
                     sender = msg.from_user.username if msg.from_user else "?"
                     text = (msg.text or msg.caption or "").strip()
 
-                    # add to list of messages from each user
-                    if sender not in messages:
-                        messages.update((sender, [text]))
-                    else:
-                        messages[sender].append(text)
-                
-                messages_str = {}
-                for sender_it, text_it in messages: # convert each list to str
-                    messages_str.update((sender_it, '. '.join(text_it)))
-                    # summarization = # call summarizer for each like ("Sender: his/her text")
+                    # add to message from each user
+                    messages.append(sender + " - " + text)
+
+                str_messages = ".\n".join(messages)
+                # summarization = # call summarizer for each like ("Sender: his/her text")
 
                 # await update.message.reply_text(f'Summarization: {summarization}')
 
