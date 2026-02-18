@@ -1,4 +1,5 @@
 python-telegram-bot
+telethon
 pyrogram
 torch
 "transformers[torch]"

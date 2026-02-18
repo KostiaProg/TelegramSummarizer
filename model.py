@@ -3,6 +3,8 @@ from transformers import BartTokenizer, BartForConditionalGeneration, Trainer, T
 from datasets import load_dataset
 from torch.cuda import is_available
 
+import os
+
 # get train and test data
 TRAIN_PATH = "data/ukr_train.jsonl"
 VAL_PATH = "data/ukr_test.jsonl"
@@ -57,12 +59,17 @@ def train():
     # train and save
     trainer.train()
     trainer.save_model(MODEL_PATH)
+    
     model.save_pretrained('ukr_summarizer')
 
 def summarize(text: str) -> str:
+    # train if we didn't do it before
+    if not os.path.isfile(MODEL_PATH + "model.safetensors"):
+        train()
+
     # load the model
     model = BartForConditionalGeneration.from_pretrained("./models")
-    tokenizer = BartTokenizer.from_pretrained("./models")
+    tokenizer = BartTokenizer.from_pretrained("facebook/bart-large-cnn")
 
     # to gpu
     device = "cuda" if is_available() else "cpu"
@@ -70,14 +77,19 @@ def summarize(text: str) -> str:
     model.eval()  
 
     # tokenize input
-    input_ids = tokenizer(text, max_length = 1024, padding='max_length', truncation = True, return_tesors = 'pt').input_ids
+    inputs = tokenizer(text, max_length = 1024, padding='max_length', truncation=True, return_tensors='pt')
+
+    input_ids = inputs.input_ids.to(device)
+    attention_mask = inputs.attention_mask.to(device)
     if is_available():
         input_ids = input_ids.to('cuda')
     
     # process it
     with torch.inference_mode():
-        output = model.generate(input_ids, max_length=128, num_beams = 5)
+        output = model.generate(input_ids, attention_mask=attention_mask, min_length=20, max_length=128, num_beams=5, early_stopping=True, no_repeat_ngram_size=3)
 
     # get summary
     summary_ids = output[0].tolist()
-    return tokenizer.decode(summary_ids, skip_special_tokens = True)
+    return tokenizer.decode(summary_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+
+# train()
