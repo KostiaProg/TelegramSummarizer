@@ -1,13 +1,13 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes
 
-import asyncio
 from pyrogram import Client
 from pyrogram.errors import ChatIdInvalid, PeerIdInvalid, ChannelInvalid, BadRequest
 
-api_id = 0
-api_hash = "SMT"
-mig_zvaz = "SMT"
+from model import summarize
+
+api_id = 39406457
+api_hash = "dae8359668e99e352a06128300e69e3f"
 
 # to show a button
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -47,9 +47,8 @@ async def summarize(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     messages.append(sender + " - " + text)
 
                 str_messages = ".\n".join(messages)
-                # summarization = # call summarizer for each like ("Sender: his/her text")
 
-                # await update.message.reply_text(f'Summarization: {summarization}')
+                await update.message.reply_text(f'Summarization: {summarize(str_messages)}')
 
             except ValueError:
                 await update.message.reply_text('Pass integer as the second argument')
